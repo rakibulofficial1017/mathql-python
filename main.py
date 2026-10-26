@@ -44,4 +44,7 @@ def tokenize(line):
 line = "let v = 30;"
 tokens = tokenize(line)
 
+def parse(tokens):
+    pass
+
 print(tokens)
