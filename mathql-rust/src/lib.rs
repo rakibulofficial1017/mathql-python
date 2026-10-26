@@ -1,75 +1,40 @@
-
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
-use regex::{Captures, Regex};
+use regex::Regex;
+use std::sync::LazyLock;
 
-#[derive(Debug)]
-struct Token {
-    name: String,
-    value: String,
-}
+static TOKEN_REGEX: LazyLock<Regex> = LazyLock::new(||
+    Regex::new( r#"(?P<NUMBER>\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)|(?P<STRING>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?P<KEYWORD>\b(?:let)\b)|(?P<OPERATOR>[+\-=*/%^()])|(?P<IDENTIFIER>[A-Za-z_][A-Za-z_0-9]*)|(?P<SEMICOLON>;)"#) // Regex isn't mean to be readable so just put up with it
+        .expect("INVALID REGEX, BLAME THE DEVELOPER")
+);
 
 #[pyfunction]
-fn tokenize<'py>(
-    py: Python<'py>,
-    line: &str,
-) -> PyResult<Vec<Bound<'py, PyDict>>> {
-    let keywords = ["let"];
-
-    let escaped_keywords: Vec<String> = keywords
-        .iter()
-        .map(|k| regex::escape(k))
-        .collect();
-
-    let keyword_pattern =
-        format!(r"\b(?:{})\b", escaped_keywords.join("|"));
-
-    let token_rules = vec![
-        ("NUMBER", r"\d+(?:\.\d*)?(?:[eE][+-]?\d+)?"),
-        ("STRING", r#"(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')"#),
-        ("KEYWORD", keyword_pattern.as_str()),
-        ("OPERATOR", r"[+\-=*/%^()]"),
-        ("IDENTIFIER", r"[A-Za-z_][A-Za-z_0-9]*"),
-        ("SEMICOLON", r";"),
-    ];
-
-    let combined_pattern = token_rules
-        .iter()
-        .map(|(name, pattern)| format!("(?P<{}>{})", name, pattern))
-        .collect::<Vec<_>>()
-        .join("|");
-
-    let token_regex = Regex::new(&combined_pattern)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-
+fn tokenize(line: &str) -> Vec<(String, String)> {
     let mut tokens = Vec::new();
 
-    for caps in token_regex.captures_iter(line) {
-        let matched = caps.get(0).unwrap();
+    for caps in TOKEN_REGEX.captures_iter(line) {
+        let value = caps.get(0).unwrap().as_str();
 
-        if matched.as_str().trim().is_empty() {
-            continue;
-        }
+        let name = [
+            "NUMBER",
+            "STRING",
+            "KEYWORD",
+            "OPERATOR",
+            "IDENTIFIER",
+            "SEMICOLON"
+        ]
+        .iter()
+        .find(|&&name| caps.name(name).is_some())
+        .unwrap();
 
-        let name = token_rules
-            .iter()
-            .find_map(|(name, _)| {
-                caps.name(name).map(|_| *name)
-            })
-            .unwrap_or("UNKNOWN");
+        tokens.push((name.to_string(), value.to_string()));
+        
 
-        let token = PyDict::new(py);
-        token.set_item("name", name)?;
-        token.set_item("value", matched.as_str())?;
-
-        tokens.push(token);
     }
-
-    Ok(tokens)
+    tokens
 }
 
 #[pymodule]
-fn mathql_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn mathql_rust(m: &Bound<'_, PyModule>) -> PyResult<()>{
     m.add_function(wrap_pyfunction!(tokenize, m)?)?;
     Ok(())
 }
