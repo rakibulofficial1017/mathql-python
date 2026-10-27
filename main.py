@@ -19,7 +19,7 @@ TOKEN_RULES = {
     "KEYWORD": r"\b(?:" + "|".join(map(re.escape, KEYWORDS)) + r")\b",
     "OPERATOR": r"[+\-=*/%^()]",
     "IDENTIFIER": r"[A-Za-z_][A-Za-z_0-9]*",
-    "SEMICOLON": r";",
+    "TERMINATOR": r";|\n",
 }
 
 TOKEN_REGEX = re.compile(
@@ -33,18 +33,22 @@ def tokenize(line):
     tokens = []
 
     for match in TOKEN_REGEX.finditer(line):
-        if match.group().isspace():
+        if match.group() in (" ", "\t"):
             continue
 
         tokens.append(Token(match.lastgroup, match.group()))
 
     return tokens
 
-
-line = "let v = 30;"
-tokens = tokenize(line)
+code = """
+let i = 10
+let mut i = 0o30
+f(x)=10x
+"""
+tokens = tokenize(code)
 
 def parse(tokens):
     pass
 
-print(tokens)
+for i in tokens:
+    print(i)

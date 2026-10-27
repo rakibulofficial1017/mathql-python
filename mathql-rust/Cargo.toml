@@ -9,5 +9,6 @@ name = "mathql_rust"
 crate-type = ["cdylib"]
 
 [dependencies]
+bigdecimal = "0.4.11"
 pyo3 = "0.29.0"
 regex = "1.13.1"

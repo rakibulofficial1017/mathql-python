@@ -3,7 +3,7 @@ use regex::Regex;
 use std::sync::LazyLock;
 
 static TOKEN_REGEX: LazyLock<Regex> = LazyLock::new(||
-    Regex::new( r#"(?P<NUMBER>\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)|(?P<STRING>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?P<KEYWORD>\b(?:let)\b)|(?P<OPERATOR>[+\-=*/%^()])|(?P<IDENTIFIER>[A-Za-z_][A-Za-z_0-9]*)|(?P<SEMICOLON>;)"#) // Regex isn't mean to be readable so just put up with it
+    Regex::new( r#"(?P<NUMBER>(0(x|X|d|D|b|B|o|O))?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)|(?P<STRING>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?P<KEYWORD>\b(?:let)\b)|(?P<OPERATOR>[+\-=*/%^()])|(?P<IDENTIFIER>[A-Za-z_][A-Za-z_0-9]*)|(?P<TERMINATOR>;|\n)"#) // Regex isn't mean to be readable so just put up with it
         .expect("INVALID REGEX, BLAME THE DEVELOPER")
 );
 
@@ -20,7 +20,7 @@ fn tokenize(line: &str) -> Vec<(String, String)> {
             "KEYWORD",
             "OPERATOR",
             "IDENTIFIER",
-            "SEMICOLON"
+            "TERMINATOR",
         ]
         .iter()
         .find(|&&name| caps.name(name).is_some())
